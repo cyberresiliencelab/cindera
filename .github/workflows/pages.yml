@@ -2,9 +2,11 @@ name: Build & Publish Cindera (encrypted)
 
 on:
   schedule:
-    - cron: "0 6 * * *"
-    - cron: "0 18 * * *"
-  workflow_dispatch:
+    - cron: "0 0 * * *"      # 00:00 UTC
+    - cron: "0 6 * * *"      # 06:00 UTC
+    - cron: "0 12 * * *"     # 12:00 UTC
+    - cron: "0 18 * * *"     # 18:00 UTC (every 6h keeps breaking news fresh)
+  workflow_dispatch:          # "Run workflow" button for an instant rebuild
   push:
     branches: [main]
 
@@ -27,7 +29,10 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Build encrypted page
         env:
+          # Filled automatically from owner/repo -> used in the in-page share button.
           SHARE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          # REQUIRED secret: the group passphrase that encrypts the page.
+          # Settings > Secrets and variables > Actions > New repository secret.
           PAGE_PASSPHRASE: ${{ secrets.PAGE_PASSPHRASE }}
         run: python -m cyberdigest.build --out public
       - uses: actions/upload-pages-artifact@v3
