@@ -172,8 +172,9 @@ PAGE_PASSPHRASE="reef tiger otter" python -m cyberdigest.build --out public
 - Login gate is a centered card; the Share button is a compact pill.
 
 ### Mobile ticker ribbons
-On mobile/tablet (where the right rail is hidden) two horizontal auto-scroll ribbons
-bracket the disclaimer: CVE numbers above, hash IOCs below (`_mobile_ribbons`). They
+On mobile/tablet the CVE ribbon is hoisted (via `hoistCve`) to the very top, above the
+brand, and auto-scrolls left->right; the hash IOC ribbon sits above LEAD THREAT and
+scrolls right->left. Both stay inside the encrypted content (hoisted only after unlock). They
 loop left->right (duplicated track, CSS keyframes), pause on tap/hover, and fall back
 to manual horizontal scroll under prefers-reduced-motion. Hidden at >=1240px. The
 disclaimer now lives inside the encrypted content (so the ribbons can bracket it and
@@ -200,3 +201,10 @@ A `:root[data-theme="light"]` block redefines the same tokens with light values.
 toggle button (top bar) flips `document.documentElement.dataset.theme` and saves the
 choice to localStorage (per viewer, per browser). An inline head script applies the
 saved theme before first paint to avoid a flash. Default is dark.
+
+### Always-surface critical items
+`rank._EXPLOIT` flags active-exploitation / zero-day / KEV language and forces the
+item to CRITICAL with a score boost, so it leads. `site._diversify` then pins CRITICAL
+items first in their section, bypassing the per-source cap — so an actively-exploited
+item can never be capped out or buried. The Hacker News feed gained a Feedburner
+fallback_url to avoid datacenter 403s, and the build cadence is every 6 hours.

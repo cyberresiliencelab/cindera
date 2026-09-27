@@ -12,7 +12,7 @@ brand:
 sources:
   # ---- General cybersecurity news (stable RSS) ----
   - {name: BleepingComputer,  url: "https://www.bleepingcomputer.com/feed/",            tier: news, category: news, weight: 1.0}
-  - {name: The Hacker News,   url: "https://thehackernews.com/feeds/posts/default?max-results=50", tier: news, category: news, weight: 1.2}
+  - {name: The Hacker News,   url: "https://thehackernews.com/feeds/posts/default?max-results=50", fallback_url: "https://feeds.feedburner.com/TheHackersNews", tier: news, category: news, weight: 1.2}
   - {name: Krebs on Security, url: "https://krebsonsecurity.com/feed/",                 tier: news, category: news, weight: 1.1}
   - {name: The Record,        url: "https://therecord.media/feed/",                     tier: news, category: news, weight: 1.0}
   - {name: SecurityWeek,      url: "https://www.securityweek.com/feed/",                tier: news, category: news, weight: 0.9}
