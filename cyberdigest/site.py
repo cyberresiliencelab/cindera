@@ -39,12 +39,23 @@ def _resolve_display(display):
 def _diversify(items: list[Item], limit: int, cap) -> list[Item]:
     """Interleave sources round-robin: the best item from each source first, then the
     second from each, and so on — up to `cap` per source and `limit` overall. Keeps a
-    single busy source from filling the whole section while preserving score order."""
+    single busy source from filling the whole section while preserving score order.
+    Exception: CRITICAL items are pinned first and bypass the per-source cap so an
+    actively-exploited / zero-day item can never be capped out or buried."""
     from collections import OrderedDict
-    by_src: "OrderedDict[str, list[Item]]" = OrderedDict()
-    for it in items:  # items arrive score-sorted, so first-seen = highest-scoring source
-        by_src.setdefault(it.source, []).append(it)
     out: list[Item] = []
+    pinned_ids: set[int] = set()
+    for it in items:  # score-sorted; take all critical first
+        if getattr(it, "severity", "") == "critical":
+            out.append(it)
+            pinned_ids.add(id(it))
+            if len(out) >= limit:
+                return out
+    by_src: "OrderedDict[str, list[Item]]" = OrderedDict()
+    for it in items:
+        if id(it) in pinned_ids:
+            continue
+        by_src.setdefault(it.source, []).append(it)
     r = 0
     while len(out) < limit:
         added = False

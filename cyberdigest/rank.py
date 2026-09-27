@@ -8,6 +8,12 @@ from .fetch import Item
 
 _CVE = re.compile(r"CVE-\d{4}-\d{4,7}", re.I)
 _CVSS = re.compile(r"cvss[:\s]*v?\d?\.?\d?[:\s]*([0-9]{1,2}(?:\.\d)?)", re.I)
+# active-exploitation signals: these always surface as critical, near the top.
+_EXPLOIT = re.compile(
+    r"actively exploited|exploited in the wild|in the wild|under active exploitation|"
+    r"mass exploitation|known exploited|added to (?:the )?kev|zero[-\s]?day",
+    re.I,
+)
 
 _SEV_ORDER = {"critical": 3, "high": 2, "medium": 1, "info": 0}
 _SEV_RANK = {v: k for k, v in _SEV_ORDER.items()}
@@ -68,6 +74,13 @@ def score_item(it: Item, cfg: dict) -> Item:
     # advisories are inherently actionable
     if it.tier == "advisory":
         score += 1.0
+
+    # ALWAYS-SURFACE: active exploitation / zero-day / KEV are forced critical and
+    # boosted so they can never be capped out or buried below routine items.
+    if _EXPLOIT.search(text):
+        score += 4.0
+        sev = "critical"
+        it.tags.insert(0, "exploited")
 
     # healthcare routing: dedicated health sources keep their category; general
     # news/intel items about a healthcare breach get pulled into the health bucket
