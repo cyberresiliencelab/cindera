@@ -34,6 +34,7 @@ jobs:
           # REQUIRED secret: the group passphrase that encrypts the page.
           # Settings > Secrets and variables > Actions > New repository secret.
           PAGE_PASSPHRASE: ${{ secrets.PAGE_PASSPHRASE }}
+          THREATFOX_AUTH_KEY: ${{ secrets.THREATFOX_AUTH_KEY }}   # free key: https://auth.abuse.ch/
         run: python -m cyberdigest.build --out public
       - uses: actions/upload-pages-artifact@v3
         with: { path: public }
