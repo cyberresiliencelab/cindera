@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import time
 from dataclasses import dataclass, field
@@ -247,16 +248,57 @@ def _parse_threatfox(text: str, limit: int) -> list[dict]:
     return out
 
 
+def _parse_threatfox_json(data: dict, limit: int) -> list[dict]:
+    """Parse the ThreatFox get_iocs JSON response into hash IOCs."""
+    out: list[dict] = []
+    for d in (data.get("data") or []):
+        t = (d.get("ioc_type") or "").lower()
+        if not t.endswith("_hash"):
+            continue
+        val = (d.get("ioc") or "").strip()
+        if not val:
+            continue
+        malware = d.get("malware_printable") or d.get("malware") or "Unknown"
+        iid = str(d.get("id") or "")
+        tags = d.get("tags") or []
+        m = _CVE_RE.search(" ".join(tags) + " " + str(malware))
+        out.append({
+            "hash": val,
+            "htype": t.replace("_hash", "").upper(),
+            "malware": malware,
+            "cve": m.group(0).upper() if m else "",
+            "link": f"https://threatfox.abuse.ch/ioc/{iid}/" if iid else "https://threatfox.abuse.ch/",
+        })
+        if len(out) >= limit:
+            break
+    return out
+
+
 def fetch_iocs(limit: int = 40) -> list[dict]:
-    """Recent malware hash IOCs from abuse.ch ThreatFox (free, no key).
-    Never raises — an unreachable IOC feed just yields an empty hash panel."""
-    url = "https://threatfox.abuse.ch/export/csv/recent/"
+    """Recent malware hash IOCs from abuse.ch ThreatFox via the authenticated API.
+    As of 2026-10-22 abuse.ch retired the anonymous CSV export; a free Auth-Key is
+    now required (get one at https://auth.abuse.ch/ and set THREATFOX_AUTH_KEY).
+    Never raises — a missing key or unreachable API just yields an empty hash panel."""
+    import json
+    key = os.environ.get("THREATFOX_AUTH_KEY", "").strip()
+    if not key:
+        print("  ! ThreatFox IOCs: THREATFOX_AUTH_KEY not set — hash feed skipped "
+              "(free key at https://auth.abuse.ch/)")
+        return []
+    url = "https://threatfox-api.abuse.ch/api/v1/"
+    body = json.dumps({"query": "get_iocs", "days": 3}).encode()
+    hdrs = dict(_HDRS)
+    hdrs.update({"Auth-Key": key, "Content-Type": "application/json", "Accept": "application/json"})
     try:
-        text = _http_get(url, timeout=30).decode("utf-8", "replace")
+        with urlopen(Request(url, data=body, headers=hdrs), timeout=30) as r:
+            data = json.loads(r.read().decode("utf-8", "replace"))
     except Exception as exc:  # noqa: BLE001
         print(f"  ! ThreatFox IOCs: fetch failed ({exc})")
         return []
-    iocs = _parse_threatfox(text, limit)
+    if data.get("query_status") != "ok":
+        print(f"  ! ThreatFox IOCs: API status '{data.get('query_status')}' (check Auth-Key)")
+        return []
+    iocs = _parse_threatfox_json(data, limit)
     print(f"  · ThreatFox IOCs: {len(iocs)} hashes")
     return iocs
 
