@@ -449,7 +449,7 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 var(--font);
 .layout{display:block}
 .top{display:flex;align-items:center;justify-content:space-between;margin:4px 2px 20px}
 .brand{display:flex;align-items:center;gap:10px}
-.brand .mk{font-size:28px;color:var(--accent)}
+.brand .mk{width:30px;height:30px;display:flex;align-items:center}
 .brand .nm{font-size:26px;font-weight:800;letter-spacing:2px;background:linear-gradient(92deg,var(--text),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .pill{font-size:11.5px;color:var(--muted);background:var(--surface-3);border:1px solid var(--border);padding:5px 10px;border-radius:999px;display:flex;align-items:center;gap:5px}
 .pill .live{width:6px;height:6px;border-radius:50%;background:var(--accent)}
@@ -615,7 +615,15 @@ def _shell(now, inner, share_url, brand, encrypted) -> str:
             f'<script>try{{document.documentElement.dataset.theme=localStorage.getItem("cindera-theme")||"dark"}}catch(e){{}}</script>'
             f'</head><body><div class="wrap">'
             f'<div class="top"><div class="brand">'
-            f'<span class="mk">&#128737;</span><span class="nm">{_esc(name.upper())}</span></div>'
+            f'<span class="mk"><svg viewBox="0 0 1024 1024" width="30" height="30" aria-label="Cindera">'
+            f'<defs><linearGradient id="mkE" x1="0" y1="1" x2="1" y2="0">'
+            f'<stop offset="0" stop-color="#E8421C"/><stop offset=".55" stop-color="#FF7A2E"/>'
+            f'<stop offset="1" stop-color="#FFC15A"/></linearGradient></defs>'
+            f'<path d="M710 314 A280 280 0 1 0 710 710" fill="none" stroke="url(#mkE)" stroke-width="104" stroke-linecap="round"/>'
+            f'<path d="M512 372 C560 438 598 476 598 546 A86 86 0 0 1 426 546 C426 476 464 438 512 372 Z" fill="url(#mkE)"/>'
+            f'<path d="M512 486 C534 516 550 536 550 566 A38 38 0 0 1 474 566 C474 536 490 516 512 486 Z" fill="var(--bg)"/>'
+            f'<circle cx="790" cy="512" r="30" fill="#FFC15A"/></svg></span>'
+            f'<span class="nm">{_esc(name.upper())}</span></div>'
             f'<div class="top-r"><button class="tbtn" id="themeBtn" aria-label="Toggle light/dark theme">&#9728;</button>'
             f'<span class="pill"><span class="live"></span>Updated {now:%H:%M} UTC</span></div></div>'
             f'<div class="tag">{_esc(tagline)} &middot; {now:%a %d %b %Y} UTC</div>')
