@@ -91,6 +91,15 @@ def score_item(it: Item, cfg: dict) -> Item:
         if pat and pat.search(text):
             it.category = "health"
 
+    # PRIORITY: healthcare items are boosted so breaches surface near the top
+    # (configurable via category_boost in feeds.yaml). A health breach that is also
+    # actively exploited still outranks everything thanks to the exploit boost above.
+    boost = cfg.get("category_boost", {}).get(it.category, 0.0)
+    if boost:
+        score += float(boost)
+        if it.category == "health" and cfg.get("health_pin") and _SEV_ORDER[sev] < _SEV_ORDER["high"]:
+            sev = "high"  # ensures healthcare breaches are pinned above routine items
+
     # recency: gentle decay so a 6-day-old item ranks below a fresh one
     age_h = (datetime.now(timezone.utc) - it.published).total_seconds() / 3600
     score *= max(0.5, 1.0 - age_h / 720)  # ~30-day half-ish decay floor

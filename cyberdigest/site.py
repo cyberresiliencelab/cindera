@@ -124,13 +124,27 @@ def _row(it: Item) -> str:
     )
 
 
+def _pick_lead(items: list[Item]) -> Item:
+    """Choose the LEAD THREAT (items are score-sorted):
+    1) an actively-exploited critical always leads (safety first);
+    2) otherwise a significant healthcare breach leads (health, critical/high);
+    3) otherwise the top-scored item."""
+    for it in items:
+        if getattr(it, "severity", "") == "critical" and "exploited" in getattr(it, "tags", []):
+            return it
+    for it in items:
+        if getattr(it, "category", "") == "health" and getattr(it, "severity", "") in ("critical", "high"):
+            return it
+    return items[0]
+
+
 def _panel(period: str, items: list[Item], sections, section_limits, cap) -> str:
     active = " active" if period == "daily" else ""
     if not items:
         return (f'<section class="panel{active}" data-p="{period}">'
                 f'<p class="empty">No notable items in this window. All quiet.</p></section>')
 
-    lead = items[0]  # single most important item across all categories
+    lead = _pick_lead(items)  # healthcare breach leads, unless an exploited-critical exists
     body = f'<div class="lead-label">&#9679; LEAD THREAT</div>{_hero(lead)}'
 
     # bucket the rest by display category (items are already score-sorted)
@@ -473,6 +487,7 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 var(--font);
 .gate{max-width:380px;margin:9vh auto;text-align:center;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:36px 30px}
 .gate .lk{font-size:42px;color:var(--accent);line-height:1}
 .gate p{color:var(--text-3);font-size:14px;margin:14px 0 4px}
+.rem{display:flex;align-items:center;gap:7px;justify-content:center;color:var(--muted-3);font-size:12.5px;margin:4px 0 10px}
 .gate input{width:100%;padding:12px;font-size:16px;border-radius:12px;border:1px solid var(--border);background:var(--surface-3);color:var(--text);margin:12px 0}
 .gate button{width:100%;padding:12px;font-size:15px;font-weight:500;border:none;border-radius:12px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
 .err{color:var(--danger);font-size:13px;min-height:18px;margin-top:8px}
@@ -558,9 +573,7 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 var(--font);
   .wrap{max-width:1460px}
   .layout{grid-template-columns:320px minmax(0,1fr) 300px}
   .rail{display:block;position:sticky;top:22px;height:calc(100vh - 44px)}
-  .rail-scroll{height:100%;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-  .rail-scroll::-webkit-scrollbar{width:8px}
-  .rail-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+  .rail-scroll{height:100%;overflow:hidden}
 }
 .srcs-t{margin-top:11px}
 .srcs-t>summary{cursor:pointer;font-size:11.5px;color:var(--muted-2);list-style:none;padding:5px 0 2px;user-select:none}
@@ -663,13 +676,14 @@ def _shell(now, inner, share_url, brand, encrypted) -> str:
 
     extra_js = (
         "function railAuto(){var sc=document.querySelector('.rail-scroll');if(!sc)return;"
-        "var paused=false,t=null;"
+        "var tr=sc.querySelector('.rail-track');if(!tr)return;"
+        "var y=0,h=0,paused=false;"
         "sc.addEventListener('mouseenter',function(){paused=true});"
         "sc.addEventListener('mouseleave',function(){paused=false});"
-        "sc.addEventListener('wheel',function(){paused=true;clearTimeout(t);t=setTimeout(function(){paused=false},2500)},{passive:true});"
         "sc.addEventListener('touchstart',function(){paused=true},{passive:true});"
-        "setInterval(function(){if(paused)return;sc.scrollTop+=1;"
-        "if(sc.scrollTop>=sc.scrollHeight/2)sc.scrollTop-=sc.scrollHeight/2;},45);}"
+        "function step(){if(!h){h=tr.scrollHeight/2;}"
+        "if(h>40&&!paused){y-=0.45;if(-y>=h){y+=h;}tr.style.transform='translateY('+y+'px)';}"
+        "requestAnimationFrame(step);}requestAnimationFrame(step);}"
         "function bindActs(){if(window.innerWidth<920){"
         "document.querySelectorAll('.acts-d').forEach(function(d){d.removeAttribute('open')});}}"
         "function hoistCve(){var r=document.querySelector('.mrib.mtop'),w=document.querySelector('.wrap');"
@@ -701,6 +715,7 @@ def _shell(now, inner, share_url, brand, encrypted) -> str:
     gate = ('<div id="gate" class="gate"><div class="lk">&#128274;</div>'
             '<p>Members only. Enter the group passphrase.</p>'
             '<input id="pw" type="password" placeholder="Passphrase" autocomplete="off">'
+            '<label class="rem"><input id="rem" type="checkbox"> Remember on this device</label>'
             '<button id="go">Unlock</button><div id="err" class="err"></div></div>'
             '<div id="app" style="display:none"></div>')
     dec_js = (
@@ -718,9 +733,13 @@ def _shell(now, inner, share_url, brand, encrypted) -> str:
         "document.getElementById('go').onclick=async function(){var p=document.getElementById('pw').value;"
         "if(!p){document.getElementById('err').textContent='Enter the passphrase';return;}"
         "document.getElementById('err').textContent='Checking…';"
-        "if(!await attempt(p))document.getElementById('err').textContent='Wrong passphrase';};"
+        "if(await attempt(p)){var r=document.getElementById('rem');"
+        "if(r&&r.checked){try{localStorage.setItem('cindera-pw',p)}catch(e){}}}"
+        "else document.getElementById('err').textContent='Wrong passphrase';};"
         "document.getElementById('pw').addEventListener('keydown',function(e){"
         "if(e.key==='Enter')document.getElementById('go').click();});"
-        "(function(){var m=location.hash.match(/k=([^&]+)/);if(m)attempt(decodeURIComponent(m[1]));})();"
+        # auto-unlock: 1) shared #k= link, 2) remembered passphrase on this device (opt-in; app-gated)
+        "(function(){var m=location.hash.match(/k=([^&]+)/);if(m){attempt(decodeURIComponent(m[1]));return;}"
+        "try{var sp=localStorage.getItem('cindera-pw');if(sp)attempt(sp);}catch(e){}})();"
     )
     return head + gate + foot + f'<script>{tab_js}{filter_js}{extra_js}{dec_js}</script></body></html>'

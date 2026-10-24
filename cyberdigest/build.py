@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import base64
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -70,6 +71,28 @@ def main() -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "index.html").write_text(page, encoding="utf-8")
+
+    # ---- alert beacon for the mobile app (Option 1 local notifications) ----
+    # Public, NON-SENSITIVE change-signal only: counts + a signature over the set of
+    # critical / high-healthcare item links. No titles are exposed. The app polls this,
+    # and when `sig` changes it raises a GENERIC local notification; details stay behind
+    # the passphrase in the app.
+    import hashlib
+    import json as _json
+    recent = digests.get("daily") or digests.get("weekly") or []
+    crit = [i for i in recent if getattr(i, "severity", "") == "critical"]
+    health_hi = [i for i in recent if getattr(i, "category", "") == "health"
+                 and getattr(i, "severity", "") in ("critical", "high")]
+    ids = sorted({i.link for i in crit} | {i.link for i in health_hi})
+    sig = hashlib.sha256("|".join(ids).encode()).hexdigest()[:16]
+    beacon = {
+        "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "sig": sig,
+        "n_critical": len(crit),
+        "n_health": len(health_hi),
+    }
+    (out / "alerts.json").write_text(_json.dumps(beacon), encoding="utf-8")
+    print(f"Wrote {out/'alerts.json'} (sig {sig}, critical {len(crit)}, health {len(health_hi)})")
     print(f"Wrote {out/'index.html'} [{mode}] "
           f"(daily {len(digests['daily'])}, weekly {len(digests['weekly'])}, "
           f"monthly {len(digests['monthly'])})")
