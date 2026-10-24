@@ -208,3 +208,25 @@ item to CRITICAL with a score boost, so it leads. `site._diversify` then pins CR
 items first in their section, bypassing the per-source cap — so an actively-exploited
 item can never be capped out or buried. The Hacker News feed gained a Feedburner
 fallback_url to avoid datacenter 403s, and the build cadence is every 6 hours.
+
+### Healthcare on priority
+The Healthcare Breaches section is ordered first, and `category_boost: {health: 2.5}`
+raises healthcare items' score so breaches surface near the top. `health_pin: true`
+lifts them to at least HIGH severity (pinned above routine items in-section). An
+actively-exploited item still outranks via the exploitation boost. A major healthcare breach also becomes the LEAD THREAT (via site._pick_lead) unless an
+actively-exploited critical is present, which always leads for safety. Tune the boost or
+set `health_pin: false` in feeds.yaml to soften.
+
+### Added authoritative feeds (28 total)
+- CISA ICS Medical advisories -> Healthcare stream (medical-device vulns, rides the
+  healthcare priority boost). Health section relabelled 'HEALTHCARE SECURITY'.
+- CISA Alerts (Current Activity; announces KEV additions) -> CVE & Advisories.
+- SANS Internet Storm Center (full feed) -> Threat Actor / Intel.
+All three are government/practitioner-grade; NVD RSS is retired (KEV covers exploited CVEs).
+
+### ThreatFox now needs an Auth-Key (2026-10-22)
+abuse.ch retired the anonymous CSV export (HTTP 410). `fetch_iocs()` now calls the
+authenticated JSON API (POST get_iocs, days=3) with the `Auth-Key` header. Get a FREE
+key at https://auth.abuse.ch/ and add it as the repo secret `THREATFOX_AUTH_KEY`
+(wired into pages.yml). Without the key the hash panel is simply empty; the article
+rescan still supplements any hashes found in the feeds.

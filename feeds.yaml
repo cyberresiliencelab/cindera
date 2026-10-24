@@ -26,6 +26,7 @@ sources:
   # CISA "all advisories" RSS is still live; KEV/alerts RSS were retired -> KEV via JSON below.
   - {name: CISA Advisories,   url: "https://www.cisa.gov/cybersecurity-advisories/all.xml", tier: advisory, category: advisories, weight: 1.5}
   - {name: CISA ICS,          url: "https://www.cisa.gov/cybersecurity-advisories/ics-advisories.xml", tier: advisory, category: advisories, weight: 1.2}
+  - {name: CISA Alerts,       url: "https://www.cisa.gov/cybersecurity-advisories/alerts.xml", tier: advisory, category: advisories, weight: 1.5}
   - {name: CISA KEV,          url: "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json", tier: advisory, category: advisories, weight: 1.8, format: json_kev}
   - {name: Zero Day Initiative, url: "https://www.zerodayinitiative.com/rss/published/", tier: advisory, category: advisories, weight: 1.1}
 
@@ -38,6 +39,7 @@ sources:
   - {name: Check Point Research, url: "https://research.checkpoint.com/feed/",             tier: intel, category: intel, weight: 1.0}
   - {name: Google Project Zero,  url: "https://googleprojectzero.blogspot.com/feeds/posts/default", tier: intel, category: intel, weight: 1.2}
   - {name: Fortinet (FortiGuard), url: "https://feeds.feedburner.com/fortinet/blog/threat-research", fallback_url: "https://www.fortinet.com/blog/threat-research/rss.xml", tier: intel, category: intel, weight: 1.1}
+  - {name: SANS ISC,          url: "https://isc.sans.edu/rssfeed_full.xml", tier: intel, category: intel, weight: 1.3}
 
   # ---- Healthcare sources ----
   # Only HIPAA Journal is healthcare-only, so it's tagged health directly. DataBreaches
@@ -45,6 +47,7 @@ sources:
   # promoted into the Healthcare section ONLY when an item matches health_keywords —
   # otherwise their non-healthcare items would pollute that section.
   - {name: HIPAA Journal,     url: "https://www.hipaajournal.com/feed/",                 tier: news, category: health, weight: 1.1}
+  - {name: CISA ICS Medical,  url: "https://www.cisa.gov/cybersecurity-advisories/ics-medical-advisories.xml", tier: advisory, category: health, weight: 1.4}
   - {name: DataBreaches.net,  url: "https://www.databreaches.net/feed/",                 tier: news, category: news,   weight: 1.0}
   - {name: HealthcareInfoSecurity, url: "https://www.healthcareinfosecurity.com/rss-feeds", tier: news, category: news, weight: 1.0}
 
@@ -57,12 +60,19 @@ sources:
 # Raise per_source_cap / section_limits if you want even more per source.
 display:
   sections:
+    - {category: health,     label: "HEALTHCARE SECURITY"}
     - {category: advisories, label: "CVE &amp; ADVISORIES"}
     - {category: intel,      label: "THREAT ACTOR / INTEL"}
-    - {category: health,     label: "HEALTHCARE BREACHES"}
     - {category: news,       label: "OTHER NEWS"}
-  section_limits: {advisories: 40, intel: 40, health: 25, news: 90}
+  section_limits: {health: 30, advisories: 40, intel: 40, news: 90}
   per_source_cap: 10
+
+# ---- Healthcare on priority ----
+# Boost added to an item's score by category; healthcare breaches surface near the
+# top. health_pin raises healthcare items to at least HIGH severity so they are
+# pinned above routine items in their section (actively-exploited items still win).
+category_boost: {health: 2.5}
+health_pin: true
 
 priority_keywords: {critical: 3.0, high: 2.0, medium: 1.0}
 

@@ -8,7 +8,7 @@ rules (you're just sharing a URL).
 - **Encrypted:** AES-256-GCM, key from your passphrase. Published file is ciphertext
   only; a stranger with the URL sees a lock screen.
 - **Auto-updating:** GitHub Actions rebuilds daily; the link never changes.
-- **20 verified sources:** news, CISA advisories, CISA KEV (JSON), vendor/threat-intel,
+- **25 verified sources:** news, CISA advisories, CISA KEV (JSON), vendor/threat-intel,
   and healthcare-breach feeds. Severity-ranked so the important item leads. Dead feeds
   are skipped.
 - **Grouped sections:** each Daily/Weekly/Monthly tab leads with the top threat, then
