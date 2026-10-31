@@ -629,7 +629,7 @@ def _shell(now, inner, share_url, brand, encrypted) -> str:
             f'<div class="tag">{_esc(tagline)} &middot; {now:%a %d %b %Y} UTC</div>')
     foot = (f'<div class="share-wrap"><a class="share" href="{wa}">&#128172; Share to group</a></div>'
             f'<div class="foot">Members only &middot; every item links to its source. '
-            f'Verify before acting.</div></div>')
+            f'Verify before acting.<br>Built by Nagaraj Vangapally</div></div>')
 
     tab_js = ("function bindTabs(){document.querySelectorAll('.tab').forEach(function(t){"
               "t.onclick=function(){var p=t.dataset.t;"
